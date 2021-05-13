@@ -37,6 +37,7 @@ def main():
     input_size = hidden_size = state_size = 1
     hidden_anchor_state = (torch.zeros(1,1,hidden_size).to(device), torch.zeros(1,1, hidden_size).to(device)) #initial anchor 
     possible_next_instances_mask = np.ones(50)
+    possible_next_instances_mask[0] = 0
 
     if len(possible_next_instances) < len(possible_next_instances_mask):
         possible_next_instances_mask[len(possible_next_instances):] = 0
