@@ -101,7 +101,6 @@ def main():
         tmp_mask[action_idx] = False
         ss.possible_next_instances_mask = tmp_mask
         if np.array(ss.possible_next_instances_mask).sum() == 0 :
-
             st.write("Thanks for contributing to this study.")
             st.write('Please submit the following code to MTurk:')
             code = ''.join(random.choice(letters) for i in range(10))
@@ -111,7 +110,7 @@ def main():
             button_placeholder_2.empty()
             explanation_placeholder_2.empty()
             explanation_placeholder.empty()
-            np.save(f'mturk_review_session_data_{code}.npy', np.array(ss.last_decisions))
+            np.save(f'./data/mturk_review_session_data_{code}.npy', np.array(ss.last_decisions))
 
         
 
