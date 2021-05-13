@@ -111,7 +111,7 @@ def main():
             button_placeholder_2.empty()
             explanation_placeholder_2.empty()
             explanation_placeholder.empty()
-            np.save(f'mturk_review_data_{code}.npy', np.array(ss.last_decisions))
+            np.save(f'mturk_review_session_data_{code}.npy', np.array(ss.last_decisions))
 
         
 

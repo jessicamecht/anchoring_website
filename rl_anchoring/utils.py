@@ -25,7 +25,7 @@ def load_data_items():
     target_decision: majority vote of turkers 
     reviewer_score is the single turker review
     '''
-    read_dictionary = np.load('../mturk_review_data_2.npy',allow_pickle='TRUE')
+    read_dictionary = np.load('../mturk_review_data_w_7.npy',allow_pickle='TRUE')
     return read_dictionary
 
 def normalize(anchor):
