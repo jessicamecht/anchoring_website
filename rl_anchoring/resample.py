@@ -38,7 +38,7 @@ def select_action(output, eps_end, eps_start, eps_decay, steps_done):
     #exploration/exploitation trade-off
     if sample > eps_threshold:
         with torch.no_grad():
-            return torch.tensor(output.max(2)[1].view(1), dtype=torch.int64, device=device)
+            return output.max(2)[1].view(1)
     else:
         return torch.tensor([[random.randrange(len(output))]], device=device, dtype=torch.long)
 
@@ -72,7 +72,7 @@ def train_resampling(data, anchor_lstm):
     
         while np.array(possible_next_instances_mask).sum() > 0:
             hidden_anchor_state = (torch.zeros(1,1,hidden_size).to(device), torch.zeros(1,1, hidden_size).to(device)) #initial anchor 
-            length_of_sequence = min(random.randint(2,30), len(possible_next_instances))
+            length_of_sequence = min(random.randint(3,30), len(possible_next_instances))
             instance_sequence = []
             instance = possible_next_instances[0]
             possible_next_instances_mask[0] = False
@@ -87,6 +87,7 @@ def train_resampling(data, anchor_lstm):
             for i in range(length_of_sequence):
                 steps_done+=1
                 lstm_input, reviewer_decision = get_input_output_data_items(np.array(instance_sequence))
+                print(lstm_input.shape, reviewer_decision.shape)
 
                 with torch.no_grad():
                     predictions, (state, _), _ = anchor_lstm(lstm_input,hidden_anchor_state)
@@ -152,11 +153,11 @@ def main(n_iters=1):
     svm_predictions, svm_confidence, features, target_decision, final_decision, Item_Number, reviewer_score = data[0][0]
     kf = KFold(n_splits=5)
 
-    input_size = 1
+    input_size = 2
     hidden_size = 1
     state_size = 1
     anchor_lstm = AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items.pt'))
+    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_SVM+Decision.pt', map_location=torch.device('cpu')))
     all_resampled_review_sessions = []
 
     for train_index, test_index in kf.split(data):
