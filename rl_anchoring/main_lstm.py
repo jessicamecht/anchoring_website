@@ -170,8 +170,8 @@ def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
                             
                 anchor_lstm.zero_grad()
 
-                lstm_input, reviewer_decision, features = get_input_output_data_items_w_features(review_session)
-                preds, hidden, all_hidden = anchor_lstm(lstm_input, features, hidden_anchor_states)
+                lstm_input, reviewer_decision = get_input_output_data_items(review_session)
+                preds, hidden, all_hidden = anchor_lstm(lstm_input,hidden_anchor_states)
 
 
                 preds = preds.squeeze(0).to(device)
