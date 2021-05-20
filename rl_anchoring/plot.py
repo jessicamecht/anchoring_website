@@ -23,6 +23,8 @@ def generate_plot(all_review_sessions, filename):
                     nSinceAccept = 0
                     continue
                 binSinceAccept = str(nSinceAccept)
+                if nSinceAccept >= 3 and nSinceAccept <= 4:
+                    binSinceAccept = "3-4"
                 if nSinceAccept >= 5 and nSinceAccept <= 15:
                     binSinceAccept = "5-15"
                 if nSinceAccept > 15:
@@ -45,7 +47,7 @@ def generate_plot(all_review_sessions, filename):
         averageScoresByInterval[inter] = sum(scoresByInterval[inter]) / len(scoresByInterval[inter])
     
     print(averageScoresByInterval)
-    keyNames = ['0','1','2','3','4','5-15', "> 15"]
+    keyNames = ['0','1','2','3-4','5-15', "> 15"]
     #keyNames = ['0','1','2','3','4','5','6','7','8', '9', '10', '11','12','13','14','15','16', "> 16"]
 
 

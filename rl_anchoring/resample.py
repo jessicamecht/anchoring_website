@@ -86,8 +86,17 @@ def train_resampling(data, anchor_lstm):
 
             for i in range(length_of_sequence):
                 steps_done+=1
+                if len(instance_sequence) == 1:
+                    state = torch.tensor([[[0]]]).to(torch.float32)
+                    log_probs.append(torch.tensor([0.0], dtype=torch.float))
+                    values.append(torch.tensor([[0]], dtype=torch.float))
+                    rewards.append(torch.tensor(0))
+                    masks.append(torch.tensor([1], dtype=torch.float, device=device))
+                    instance = possible_next_instances[1]
+                    possible_next_instances_mask[1] = False
+                    instance_sequence.append(instance)
+                    continue
                 lstm_input, reviewer_decision = get_input_output_data_items(np.array(instance_sequence))
-                print(lstm_input.shape, reviewer_decision.shape)
 
                 with torch.no_grad():
                     predictions, (state, _), _ = anchor_lstm(lstm_input,hidden_anchor_state)
@@ -157,7 +166,7 @@ def main(n_iters=1):
     hidden_size = 1
     state_size = 1
     anchor_lstm = AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_SVM+Decision.pt', map_location=torch.device('cpu')))
+    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items_6.pt', map_location=torch.device('cpu')))
     all_resampled_review_sessions = []
 
     for train_index, test_index in kf.split(data):

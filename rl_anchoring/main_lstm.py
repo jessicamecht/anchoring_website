@@ -16,6 +16,8 @@ from sklearn.model_selection import KFold
 from plot import * 
 from sklearn.metrics import precision_recall_fscore_support
 from models.loss import FocalLoss
+import functools
+import operator
 
 #####CONFIG#########################################
 gamma = 0.99
@@ -26,7 +28,7 @@ eps_decay = 200
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-hidden_size=2
+hidden_size=1
 
 def main():
     ### Init Data ###################################
@@ -50,14 +52,19 @@ def main():
     for train_index, test_index in kf.split(data):
         data_train = data[train_index]
         data_test = data[test_index]
+        sentences = list(map(lambda d: d[:,2], data))
+        voc = functools.reduce(operator.iconcat, sentences, [])
+        words = list(map(lambda d: d.split(), voc))
+        words_list = set(functools.reduce(operator.iconcat, words, []))
+        vocab_size = len(words_list)
         ### Load Models ###################################
-        anchor_lstm = AnchorLSTM(input_size, hidden_size).to(device)
+        anchor_lstm = AnchorLSTM(input_size, hidden_size, vocab_size).to(device)
         loss_fn = nn.CrossEntropyLoss(weight=class_weights)#FocalLoss() #
 
         ### Init Optimizer ###################################
         anchor_optimizer = optim.Adam(anchor_lstm.parameters(), lr=0.01)
 
-        #acc_train = pre_train_anchor(data_admissions, anchor_lstm, anchor_optimizer, loss_fn)
+        acc_train = pre_train_anchor(data_admissions, anchor_lstm, anchor_optimizer, loss_fn)
         acc_train = train_anchor(data_train, anchor_lstm, anchor_optimizer, loss_fn)
         accuracy_val.append(acc_train)
         print('acc_train', acc_train)
@@ -137,6 +144,7 @@ def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
                 lstm_input, reviewer_decision = get_input_output_data(review_session, "SVM+Decision")
                 preds, hidden, all_hidden = anchor_lstm(lstm_input,hidden_anchor_states)
 
+                print(hidden[0].shape)
 
                 preds = preds.squeeze(0).to(device)
                 loss_ll = loss_fn(preds, reviewer_decision)
@@ -169,6 +177,9 @@ def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
                             torch.zeros(1,1,hidden_size).to(device).to(torch.float)) 
                             
                 anchor_lstm.zero_grad()
+
+                #lstm_input, reviewer_decision, features = get_input_output_data_items_w_features(review_session)
+                #preds, hidden, all_hidden = anchor_lstm(lstm_input,features,hidden_anchor_states)
 
                 lstm_input, reviewer_decision = get_input_output_data_items(review_session)
                 preds, hidden, all_hidden = anchor_lstm(lstm_input,hidden_anchor_states)
