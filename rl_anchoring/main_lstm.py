@@ -72,7 +72,7 @@ def main(hidden_size=3):
 
     generate_plot(review_sessions_lstm, f"./final_confidence_items_all_unbalanced_{hidden_size}")
 
-    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_all_unbalanced.pt')
+    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}.pt')
     print("Validation Accuracy: ", np.array(accuracy_val).mean())
 
 def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
@@ -195,7 +195,7 @@ def eval_anchor(data, anchor_lstm, step, hidden_size):
 
 
 if __name__ == "__main__":
-    for i in range(1,10):
+    for i in [1,2,3,5,8,10,15,20,50]:
         main(i)
     
 
