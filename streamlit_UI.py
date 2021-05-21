@@ -2,8 +2,8 @@ import streamlit as st
 import numpy as np 
 import pandas as pd 
 import SessionState as session_state
-from rl_anchoring.models import models, actor_critic_models
-from action_selection import heuristic_select_next_action
+from rl_anchoring.models import anchor_models, actor_critic_models
+from rl_anchoring.action_selection import heuristic_select_next_action
 import math
 import torch
 import random
@@ -47,7 +47,7 @@ def save_data(last_decisions, path, code):
   
 def main():            
     action_idx = None
-
+streamlit_UI.py
     data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv',
      'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
       'books_reviews_9.csv', 'books_reviews_10.csv']
@@ -66,7 +66,7 @@ def main():
 
     review_length = 50
 
-    anchor_lstm = models.AnchorLSTM(input_size, hidden_size).to(device)
+    anchor_lstm = anchor_models.AnchorLSTM(input_size, hidden_size).to(device)
     anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced.pt'))
 
     actor = actor_critic_models.Actor(state_size, review_length).to(device)
