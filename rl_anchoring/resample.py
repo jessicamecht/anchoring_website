@@ -92,7 +92,9 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 with torch.no_grad():
                     predictions, (state, _), _ = anchor_lstm(lstm_input,hidden_anchor_state)
                 #get probability for action and critic given anchor 
-                output, value = actor(state[:,-1:,:]), critic(state[:,-1:,:])#only feed the last state 
+
+                output = actor(state[:,-1:,:])
+                value = critic(state[:,-1:,:])#only feed the last state 
                 #eliminate impossible actions (already sampled students and students from a different year)
                 valid_output = output.squeeze() * torch.tensor(possible_next_instances_mask).to(device)
                 #Select student to be sampled
@@ -120,7 +122,7 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 entropy += entropy.mean()
                 
                 log_probs.append(log_prob.unsqueeze(0))
-                values.append(value.squeeze(2))
+                values.append(value.squeeze(-1))
                 masks.append(torch.tensor([1-done], dtype=torch.float, device=device))
 
             review_sessions.append(instance_sequence)
@@ -147,31 +149,31 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
             optimizerC.step()
     print(wrong, alle)
 
-    torch.save(actor.state_dict(), "./state_dicts/actor_model.pt")
-    torch.save(critic.state_dict(), "./state_dicts/critic_model.pt")
+    torch.save(actor.state_dict(), f"./state_dicts/actor_model_{hidden_size}.pt")
+    torch.save(critic.state_dict(), f"./state_dicts/critic_model{hidden_size}.pt")
     return review_sessions
     
 
-def main(n_iters=1):
+def main(hidden_size, n_iters=1):
     ### Load data #######################
     data = load_data_items()
     svm_predictions, svm_confidence, features, target_decision, final_decision, Item_Number, reviewer_score = data[0][0]
     kf = KFold(n_splits=5)
 
     input_size = 2
-    hidden_size = 1
-    state_size = 1
+    state_size = hidden_size
     anchor_lstm = AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items_all_unbalanced.pt', map_location=torch.device('cpu')))
+    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}.pt', map_location=torch.device('cpu')))
     all_resampled_review_sessions = []
 
     for train_index, test_index in kf.split(data):
         data_train = data[train_index]
         data_test = data[test_index]
-        resampled_review_sessions = train_resampling(data_train, anchor_lstm)
+        resampled_review_sessions = train_resampling(data_train, anchor_lstm, hidden_size, hidden_size)
         all_resampled_review_sessions.extend(resampled_review_sessions)
 
-    generate_plot(all_resampled_review_sessions, f"all_final_confidence_items_resampled")
+    generate_plot(all_resampled_review_sessions, f"all_final_confidence_items_resampled_{hidden_size}")
 
 if __name__ == "__main__":
-    main()
+    for i in [1,2,3,5,8,10,15,20,50]:
+        main(i)

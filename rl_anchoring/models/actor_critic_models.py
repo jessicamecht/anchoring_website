@@ -14,7 +14,8 @@ class Actor(nn.Module):
         self.linear3 = nn.Linear(256, self.action_size)
 
     def forward(self, state):
-        output = F.relu(self.linear1(state))
+        lin = self.linear1(state)
+        output = F.relu(lin)
         output = F.relu(self.linear2(output))
         output = torch.sigmoid(self.linear3(output))
         return output
