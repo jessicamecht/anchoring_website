@@ -67,7 +67,7 @@ def main():
     review_length = 50
 
     anchor_lstm = models.AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items.pt'))
+    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced.pt'))
 
     actor = actor_critic_models.Actor(state_size, review_length).to(device)
     actor.load_state_dict(torch.load('./rl_anchoring/state_dicts/actor_model.pt'))
