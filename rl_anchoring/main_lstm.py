@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from itertools import count
 import math 
-from models.models import * 
+from models.anchor_models import * 
 import csv 
 from utils import * 
 import numpy as np
@@ -15,22 +15,13 @@ from resample import *
 from sklearn.model_selection import KFold
 from plot import * 
 from sklearn.metrics import precision_recall_fscore_support
-from models.loss import FocalLoss
 import functools
 import operator
 
-#####CONFIG#########################################
-gamma = 0.99
-eps_start = 0.9
-eps_end = 0.05
-eps_decay = 200
-####################################################
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-hidden_size=1
 
-def main():
+def main(hidden_size=3):
     ### Init Data ###################################
     data = load_data_items()
     data_admissions = load_admissions()
@@ -44,7 +35,7 @@ def main():
     class_map = np.hstack(np.array(list(map(lambda review: review[:,-1], data))))
     classes_pos = np.array(class_map).sum()/len(class_map)
     classes_neg = 1-classes_pos
-    class_weights = torch.tensor([classes_pos, classes_neg], dtype=torch.float32)
+    class_weights = torch.tensor([classes_pos, classes_neg], dtype=torch.float32).to(device)
 
     review_sessions_lstm = []
     all_predictions = []
@@ -59,16 +50,16 @@ def main():
         vocab_size = len(words_list)
         ### Load Models ###################################
         anchor_lstm = AnchorLSTM(input_size, hidden_size, vocab_size).to(device)
-        loss_fn = nn.CrossEntropyLoss(weight=class_weights)#FocalLoss() #
+        loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
         ### Init Optimizer ###################################
         anchor_optimizer = optim.Adam(anchor_lstm.parameters(), lr=0.01)
 
-        acc_train = pre_train_anchor(data_admissions, anchor_lstm, anchor_optimizer, loss_fn)
-        acc_train = train_anchor(data_train, anchor_lstm, anchor_optimizer, loss_fn)
+        #acc_train = pre_train_anchor(data_admissions, anchor_lstm, anchor_optimizer, loss_fn, hidden_size)
+        acc_train = train_anchor(data_train, anchor_lstm, anchor_optimizer, loss_fn, hidden_size)
         accuracy_val.append(acc_train)
         print('acc_train', acc_train)
-        acc_val, review_sessions, hidden_states, reviewer_decision, predictions  = eval_anchor(data_test, anchor_lstm, step)
+        acc_val, review_sessions, hidden_states, reviewer_decision, predictions  = eval_anchor(data_test, anchor_lstm, step, hidden_size)
         all_predictions.extend(predictions)
         all_decisions.extend(reviewer_decision)
 
@@ -79,49 +70,12 @@ def main():
 
         step+=1
 
-    print(precision_recall_fscore_support(all_decisions, all_predictions))
+    generate_plot(review_sessions_lstm, f"./final_confidence_items_all_unbalanced_{hidden_size}")
 
+    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_all_unbalanced.pt')
+    print("Validation Accuracy: ", np.array(accuracy_val).mean())
 
-    '''anchor_lstm = AnchorLSTM(input_size, hidden_size)
-    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_SVM+Decision.pt', map_location=torch.device('cpu')))
-    acc_val, review_sessions, hidden_states = eval_anchor(data, anchor_lstm, 0)
-    accuracy_val.append(acc_val)
-    review_sessions_lstm.extend(review_sessions)    
-    all_hidden_states.extend(hidden_states)'''
-
-
-
-    '''sessions = list(map(lambda session: session[:,-1], review_sessions_lstm))
-    sessions = [item for sublist in sessions for item in sublist]
-    correlation_lstm_decision_and_hidden_state = np.corrcoef(sessions, all_hidden_states)[0][1]
-    print('Correlation of LSTM decision and hidden state:',  correlation_lstm_decision_and_hidden_state)
-
-    prev_dec = list(map(lambda session: np.append([0], session[0:-1, -2]), review_sessions_lstm))
-    prev_dec = [item for sublist in prev_dec for item in sublist]
-    correlation_previous_decisions_and_hidden_state = np.corrcoef(prev_dec, all_hidden_states)[0][1]
-    print('Correlation of previous human decision and hidden state:',correlation_previous_decisions_and_hidden_state)
-
-    prev_dec = list(map(lambda session: np.append([0], session[0:-1, -1]), review_sessions_lstm))
-    prev_dec = [item for sublist in prev_dec for item in sublist]
-    correlation_previous_decisions_and_hidden_state = np.corrcoef(prev_dec, all_hidden_states)[0][1]
-    print('Correlation of previous LSTM decision and hidden state:',correlation_previous_decisions_and_hidden_state)
-
-    two_prev_dec = list(map(lambda session: np.append([0,0], session[0:-2, -2]), review_sessions_lstm))
-    two_prev_dec = [item for sublist in two_prev_dec for item in sublist]
-    correlation_two_previous_decisions_and_hidden_state = np.corrcoef(two_prev_dec, all_hidden_states)[0][1]
-    print('Correlation of two previous human decision and hidden state:',correlation_two_previous_decisions_and_hidden_state)
-
-    two_prev_dec = list(map(lambda session: np.append([0,0], session[0:-2, -1]), review_sessions_lstm))
-    two_prev_dec = [item for sublist in two_prev_dec for item in sublist]
-    correlation_two_previous_decisions_and_hidden_state = np.corrcoef(two_prev_dec, all_hidden_states)[0][1]
-    print('Correlation of two previous LSTM decision and hidden state:',correlation_two_previous_decisions_and_hidden_state)'''
-
-    generate_plot(review_sessions_lstm, f"./final_confidence_items_6")
-
-    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_6.pt')
-    print("Validation Accuracy: ", np.array(accuracy_val).mean())#, "Training Accuracy: ", np.array(acc_train).mean())
-
-def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
+def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
 
     '''main training function 
     iterates over all reviewers and each review session 
@@ -161,7 +115,7 @@ def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
     return num_correct/num_decisions
 
 
-def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
+def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
     '''main training function 
     iterates over all reviewers and each review session 
     for each student of the review session, 
@@ -177,9 +131,6 @@ def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
                             torch.zeros(1,1,hidden_size).to(device).to(torch.float)) 
                             
                 anchor_lstm.zero_grad()
-
-                #lstm_input, reviewer_decision, features = get_input_output_data_items_w_features(review_session)
-                #preds, hidden, all_hidden = anchor_lstm(lstm_input,features,hidden_anchor_states)
 
                 lstm_input, reviewer_decision = get_input_output_data_items(review_session)
                 preds, hidden, all_hidden = anchor_lstm(lstm_input,hidden_anchor_states)
@@ -198,7 +149,7 @@ def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn):
                 preds = torch.argmax(preds, dim=1).cpu().detach().numpy().reshape((preds.shape[0], 1))
     return num_correct/num_decisions
 
-def eval_anchor(data, anchor_lstm, step):
+def eval_anchor(data, anchor_lstm, step, hidden_size):
     anchor_lstm.eval()
     num_decisions = 0
     num_correct = 0
@@ -225,7 +176,7 @@ def eval_anchor(data, anchor_lstm, step):
 
             ### Accuracy ##########################################
             decisions = torch.argmax(preds, dim=1) == reviewer_decision
-            all_predictions.extend(torch.argmax(preds, dim=1).detach().numpy())
+            all_predictions.extend(torch.argmax(preds, dim=1).cpu().detach().numpy())
 
 
             correct = decisions.sum().item()
@@ -238,15 +189,14 @@ def eval_anchor(data, anchor_lstm, step):
 
 
             review_session_to_save = np.hstack((review_session[1:], preds))
-
             review_sessions_lstm.append(np.array(review_session_to_save))
 
-    #print("Correlation between reviewer decisions and hidden states: ", r)
-    return num_correct/num_decisions, review_sessions_lstm, hidden_states, reviewer_decisions, all_predictions#, correlation(review_sessions_lstm), review_sessions_lstm
+    return num_correct/num_decisions, review_sessions_lstm, hidden_states, reviewer_decisions, all_predictions
 
 
 if __name__ == "__main__":
-    main()
+    for i in range(1,10):
+        main(i)
     
 
 

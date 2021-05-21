@@ -48,8 +48,6 @@ def generate_plot(all_review_sessions, filename):
     
     print(averageScoresByInterval)
     keyNames = ['0','1','2','3-4','5-15', "> 15"]
-    #keyNames = ['0','1','2','3','4','5','6','7','8', '9', '10', '11','12','13','14','15','16', "> 16"]
-
 
     values = []
     
@@ -64,54 +62,4 @@ def generate_plot(all_review_sessions, filename):
     plt.ylabel("average SVM confidence of accepted file")
     plt.bar(ks, values)
     plt.savefig(f'./figures/{filename}.png')
-    plt.close()
-
-
-def plot_n_decisions_vs_confidence(review_sessions, figname='./figures/resampled_confidence.png', lstm=False):
-    scoresByInterval = collections.defaultdict(list)
-    for session in review_sessions:
-        nSinceAccept = None
-        for i in range(len(session)):
-            timestamp, target_decision, final_decision, features, svm_decision, svm_confidence = session[i]
-            accept = target_decision > 1 if not lstm else target_decision
-            svmScore = svm_confidence
-            if accept:
-                if nSinceAccept == None:
-                    # Skip the first one
-                    nSinceAccept = 0
-                    continue
-                binSinceAccept = str(nSinceAccept)
-                if nSinceAccept > 5 and nSinceAccept <= 10:
-                    binSinceAccept = "6-10"
-                elif nSinceAccept > 10 and nSinceAccept <= 20:
-                    binSinceAccept = "11-20"
-                elif nSinceAccept > 20:
-                    binSinceAccept = "> 20"
-                scoresByInterval[binSinceAccept].append(svmScore)
-                nSinceAccept = 0
-            else:
-                if nSinceAccept != None:
-                    nSinceAccept += 1
-                    binSinceAccept = str(nSinceAccept)
-                    if nSinceAccept > 5 and nSinceAccept <= 10:
-                        binSinceAccept = "6-10"
-                    if nSinceAccept > 10 and nSinceAccept <= 20:
-                        binSinceAccept = "11-20"
-                    elif nSinceAccept > 20:
-                        binSinceAccept = "> 20"
-                    scoresByInterval[binSinceAccept].append(svm_confidence)
-    averageScoresByInterval = {}
-
-    for inter in scoresByInterval:
-        averageScoresByInterval[inter] = sum(scoresByInterval[inter]) / len(scoresByInterval[inter])
-    
-    keyNames = ["0", "1", "2", "3", "4", "5", "6-10", "11-20", "> 20"]
-    keyNames = [name for name in keyNames if name in list(averageScoresByInterval.keys())]
-    ks = list(range(len(keyNames)))
-    values = [averageScoresByInterval[kn] for kn in keyNames]
-    plt.xticks(ks,keyNames)
-    plt.xlabel("Numbers of decisions since last accept")
-    plt.ylabel("average SVM confidence of accepted file")
-    plt.bar(ks, values)
-    plt.savefig(figname)
     plt.close()

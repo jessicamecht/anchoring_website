@@ -3,14 +3,16 @@ import numpy as np
 import pandas as pd 
 import SessionState as session_state
 from rl_anchoring.models import models, actor_critic_models
+from action_selection import heuristic_select_next_action
 import math
 import torch
 import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+heuristic = False
+
 def select_action(output):
-    print(output.shape, output.max(2)[1].view(1))
     return torch.tensor(output.max(2)[1].view(1), dtype=torch.int64, device=device)
 
 
@@ -42,13 +44,13 @@ def display_thank_you(code):
 
 def save_data(last_decisions, path, code):
     np.save(f'./data/mturk_review_session_data_{path}_{code}.npy', np.array(last_decisions))
-
-        
+  
 def main():            
     action_idx = None
 
     data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv',
-     'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv']
+     'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
+      'books_reviews_9.csv', 'books_reviews_10.csv']
     random_idx = random.randrange(len(data_paths))
     path = data_paths[random_idx]
     df = pd.read_csv(f"./review_sessions/{path}")
@@ -93,7 +95,12 @@ def main():
     if button_placeholder.button("Yes, I'd like to read the book."):
         ss.last_decisions = ss.last_decisions + [1]
         lstm_input = torch.tensor(np.array(ss.last_decisions, dtype=float)).to(device).to(torch.float)
-        action_idx = get_next_action(lstm_input, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+        
+        if not heuristic:
+            action_idx = get_next_action(lstm_input, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+        else:
+            action_idx = heuristic_select_next_action(1, possible_next_instances, ss.possible_next_instances_mask)
+        
         ss.action_idx = action_idx
         placeholder.table(df[["summary", "reviewText"]].loc[ss.action_idx])
         ss.progress = ss.progress + 1
@@ -108,7 +115,10 @@ def main():
     if button_placeholder_2.button("No, I'd NOT like to read the book."):
         ss.last_decisions = ss.last_decisions + [0]
         lstm_input = torch.tensor(np.array(ss.last_decisions, dtype=float)).to(device).to(torch.float)
-        action_idx = get_next_action(lstm_input, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+        if not heuristic:
+            action_idx = get_next_action(lstm_input, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+        else:
+            action_idx = heuristic_select_next_action(0, possible_next_instances, ss.possible_next_instances_mask)
         ss.action_idx = action_idx
         placeholder.table(df[["summary", "reviewText"]].loc[ss.action_idx])
         ss.progress = ss.progress + 1
@@ -121,6 +131,5 @@ def main():
             display_thank_you(code)
             save_data(ss.last_decisions, path, code)
     
-
 if __name__ == "__main__":
     main()
