@@ -47,7 +47,6 @@ def save_data(last_decisions, path, code):
   
 def main():            
     action_idx = None
-streamlit_UI.py
     data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv',
      'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
       'books_reviews_9.csv', 'books_reviews_10.csv']
@@ -56,7 +55,8 @@ streamlit_UI.py
     df = pd.read_csv(f"./review_sessions/{path}")
 
     possible_next_instances = np.array(df)
-    input_size = hidden_size = state_size = 1
+    input_size = 2
+    hidden_size = state_size = 1
     hidden_anchor_state = (torch.zeros(1,1,hidden_size).to(device), torch.zeros(1,1, hidden_size).to(device)) #initial anchor 
     possible_next_instances_mask = np.ones(50)
     possible_next_instances_mask[0] = 0
@@ -67,10 +67,10 @@ streamlit_UI.py
     review_length = 50
 
     anchor_lstm = anchor_models.AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced.pt'))
+    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced_1.pt'))
 
     actor = actor_critic_models.Actor(state_size, review_length).to(device)
-    actor.load_state_dict(torch.load('./rl_anchoring/state_dicts/actor_model.pt'))
+    actor.load_state_dict(torch.load('./rl_anchoring/state_dicts/actor_model_1.pt'))
 
     #### Init session state to preserve states 
     sess_state = session_state.SessionState(progress=0, action_idx=0, last_decisions=[0], possible_next_instances_mask=possible_next_instances_mask)
