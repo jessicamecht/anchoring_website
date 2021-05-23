@@ -17,7 +17,6 @@ def get_next_action(lstm_input, pool, hidden_anchor_state, possible_next_instanc
     anchor_lstm.eval()
     predictions, dec_f = predict(pool)
 
-
     lstm_input= lstm_input.cpu().reshape(len(lstm_input), 1)
     predictions= predictions.reshape(len(predictions), 1)
     input_to_lstm = np.append(lstm_input, predictions, axis=1)
@@ -27,15 +26,19 @@ def get_next_action(lstm_input, pool, hidden_anchor_state, possible_next_instanc
         redictions, (state, _), _ = anchor_lstm(input_to_lstm,hidden_anchor_state)
         output = actor(state[:,-1:,:])
         #eliminate impossible actions (already sampled students and students from a different year)
-        #padded_possible_next_instances_mask = np.pad(possible_next_instances_mask, (0,10),'constant')
 
-        valid_output = output.squeeze() * torch.tensor(possible_next_instances_mask).to(device)
         #Select student to be sampled
+        valid_output = output * torch.tensor(possible_next_instances_mask).to(device)
+    
+        #Select student to be sampled
+        valid_output = valid_output[0:len(pool)]
         action_idx = select_action(valid_output).item()
     return action_idx
 
 
 def predict(pool):
+    pool = np.array(pool)
+    print(pool)
     pkl_filename = './rl_anchoring/state_dicts/svm_all_unbalanced.pkl'
     with open(pkl_filename, 'rb') as file:
         clf = pickle.load(file)
@@ -77,7 +80,7 @@ def sort_by_confidence(pool, possible_instances_mask):
 def heuristic_select_next_action(last_decision, possible_instances, possible_instances_mask):
     '''selects an instance based on the last decision'''
     sorted_pool_reject, sorted_pool_admit = sort_by_confidence(possible_instances, possible_instances_mask)
-    print(sorted_pool_reject, sorted_pool_admit )
+    print(sorted_pool_reject, sorted_pool_admit)
     for possible in possible_instances_mask:
         if possible == 0:
             continue

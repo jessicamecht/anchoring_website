@@ -10,7 +10,7 @@ import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-heuristic = True
+heuristic = False
 
 def generate_random_code():
     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
@@ -31,7 +31,6 @@ def save_data(last_decisions, shown_instances, path, code):
     last_decisions = last_decisions.reshape(last_decisions.shape[0],1)
 
     data = np.append(shown_instances, last_decisions, axis=1)
-    print(data)
     df = pd.DataFrame(data)
     df.to_csv(f'./data/mturk_review_session_data_{path}_{code}.csv')
     #np.save(f'./data/mturk_review_session_data_{path}_{code}.npy', data, allow_pickle=True)
@@ -49,7 +48,7 @@ def main():
     input_size = 2
     hidden_size = state_size = 1
     hidden_anchor_state = (torch.zeros(1,1,hidden_size).to(device), torch.zeros(1,1, hidden_size).to(device)) #initial anchor 
-    possible_next_instances_mask = np.ones(len(possible_next_instances))
+    possible_next_instances_mask = np.ones(50)
     possible_next_instances_mask[0] = 0
 
     if len(possible_next_instances) < len(possible_next_instances_mask):
@@ -58,13 +57,13 @@ def main():
     review_length = 50
 
     anchor_lstm = anchor_models.AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced_1.pt'))
+    anchor_lstm.load_state_dict(torch.load(f'./rl_anchoring/state_dicts/anchor_lstm_items_all_unbalanced_1.pt', map_location=device))
 
     actor = actor_critic_models.Actor(state_size, review_length).to(device)
-    actor.load_state_dict(torch.load('./rl_anchoring/state_dicts/actor_model_1.pt'))
+    actor.load_state_dict(torch.load('./rl_anchoring/state_dicts/actor_model_1.pt', map_location=device))
 
     #### Init session state to preserve states 
-    sess_state = session_state.SessionState(progress=0, action_idx=0, last_decisions=[], possible_next_instances_mask=possible_next_instances_mask)
+    sess_state = session_state.SessionState(progress=0, action_idx=0, last_decisions=[], possible_next_instances_mask=possible_next_instances_mask, shown_instances=[])
     ss = session_state.get(progress=0, action_idx=0, last_decisions=[], possible_next_instances_mask=possible_next_instances_mask, shown_instances=[])
     
     st.title('Book Reviews')
@@ -79,53 +78,49 @@ def main():
     explanation_placeholder_2.write('Please indicate if you think you\'d like to read the book after reading the review from the other user.')
     
     placeholder = st.empty()
+    next_instance = df.loc[ss.action_idx]
     placeholder.table(df[["summary", "reviewText"]].loc[ss.action_idx])
     button_placeholder_1 = st.empty()
     button_placeholder_2 = st.empty()
-            
+
     if button_placeholder_1.button("Yes, I'd like to read the book."):
-        ss.last_decisions = ss.last_decisions + [1]
+        ss.last_decisions.append(1)
         lstm_input = torch.tensor(np.array(ss.last_decisions, dtype=float)).to(device).to(torch.float)
         
-        if not heuristic:
-            action_idx = get_next_action(lstm_input, possible_next_instances[0:len(lstm_input)], hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
-        else:
-            action_idx = heuristic_select_next_action(1, possible_next_instances, ss.possible_next_instances_mask)
+        if np.array(ss.possible_next_instances_mask).sum() != 0:
+            if not heuristic:
+                action_idx = get_next_action(lstm_input, ss.shown_instances, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+            else:
+                action_idx = heuristic_select_next_action(1, ss.shown_instances, ss.possible_next_instances_mask)
         
-        ss.action_idx = action_idx
-        next_instance = df[["summary", "reviewText"]].loc[ss.action_idx]
-        placeholder.table(next_instance)
-
-        ss.shown_instances.append(next_instance)
-        ss.progress = ss.progress + 1
-
-        tmp_mask = ss.possible_next_instances_mask
-        tmp_mask[action_idx] = False
-        ss.possible_next_instances_mask = tmp_mask
+            ss.action_idx = action_idx
+            next_instance = df.loc[ss.action_idx]
+            placeholder.table(df[["summary", "reviewText"]].loc[ss.action_idx])
 
     if button_placeholder_2.button("No, I'd NOT like to read the book."):
-        ss.last_decisions = ss.last_decisions + [0]
+        ss.last_decisions.append(0)
         lstm_input = torch.tensor(np.array(ss.last_decisions, dtype=float)).to(device).to(torch.float)
         
-        if not heuristic:
-            action_idx = get_next_action(lstm_input, possible_next_instances[0:len(lstm_input)], hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
-        else:
-            action_idx = heuristic_select_next_action(0, possible_next_instances, ss.possible_next_instances_mask)
+        if np.array(ss.possible_next_instances_mask).sum() != 0:
+            if not heuristic:
+                action_idx = get_next_action(lstm_input, ss.shown_instances, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
+            else:
+                action_idx = heuristic_select_next_action(0, ss.shown_instances, ss.possible_next_instances_mask)
         
-        ss.action_idx = action_idx
-        next_instance = df[["summary", "reviewText"]].loc[ss.action_idx]
-        placeholder.table(next_instance)
-        ss.shown_instances.append(next_instance)
-        ss.progress = ss.progress + 1
+            ss.action_idx = action_idx
+            next_instance = df.loc[ss.action_idx]
+            placeholder.table(df[["summary", "reviewText"]].loc[ss.action_idx])
 
-        tmp_mask = ss.possible_next_instances_mask
-        tmp_mask[action_idx] = False
-        ss.possible_next_instances_mask = tmp_mask
 
     if np.array(ss.possible_next_instances_mask).sum() == 0 :
         code = generate_random_code()
         display_thank_you(code, button_placeholder_1, button_placeholder_2, placeholder, explanation_placeholder_2, explanation_placeholder)
         save_data(ss.last_decisions, ss.shown_instances, path, code)
     
+    tmp_mask = ss.possible_next_instances_mask
+    tmp_mask[ss.action_idx] = False
+    ss.possible_next_instances_mask = tmp_mask
+    ss.shown_instances.append(next_instance)
+
 if __name__ == "__main__":
     main()
