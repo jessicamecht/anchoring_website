@@ -71,7 +71,8 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
         if len(possible_next_instances) < len(possible_next_instances_mask): # if we have a shorter sequence, pad 
             possible_next_instances_mask[len(possible_next_instances)-1:] = 0
 
-        while np.array(possible_next_instances_mask).sum() > 0:
+        while np.array(possible_next_instances_mask).sum() > 2:
+            learning_finished=False
             
             hidden_anchor_state = (torch.zeros(1,1,hidden_size).to(device), torch.zeros(1,1, hidden_size).to(device)) #initial anchor 
             length_of_sequence = min(random.randint(3,30), int(possible_next_instances_mask.sum()))
@@ -86,7 +87,7 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
             masks = []
             entropy = 0
 
-            for i in range(length_of_sequence):
+            for i in range(length_of_sequence-2):
                 steps_done+=1
                 lstm_input, reviewer_decision = get_input_output_data_items(np.array(instance_sequence))
                 with torch.no_grad():
@@ -102,9 +103,15 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 action_idx = select_action(valid_output, steps_done).item()
                 #remove the student s.t. he can't be sampled again  
 
+                if valid_output.sum() == 0:
+                    print("no more instances")
+                    learning_finished = True
+                    break
+
                 alle+=1
 
                 if possible_next_instances_mask[action_idx] == False:
+                    print('there is something wrong')
                     wrong+=1
                     action_idx = torch.argmax(torch.tensor(possible_next_instances_mask))
 
@@ -118,6 +125,11 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 done = possible_next_instances_mask.sum()==0
                 log_prob = torch.log(output.squeeze()[action_idx])
                 logp = torch.log2(output.squeeze())
+
+                if torch.isnan(log_prob).any():
+                    print("there is a nan ")
+
+
                 entropy = (-output.squeeze()*logp).sum()
                 entropy += entropy.mean()
                 
@@ -125,28 +137,29 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 values.append(value.squeeze(-1))
                 masks.append(torch.tensor([1-done], dtype=torch.float, device=device))
 
-            review_sessions.append(instance_sequence)
-            next_state = state
-            next_value = critic(next_state)
+            if not learning_finished:
+                review_sessions.append(instance_sequence)
+                next_state = state
+                next_value = critic(next_state)
                 
-            returns = compute_returns(next_value, rewards, masks)
-            log_probs = torch.cat(log_probs)
-            returns = torch.cat(returns).detach()
-            values = torch.cat(values)
+                returns = compute_returns(next_value, rewards, masks)
+                log_probs = torch.cat(log_probs)
+                returns = torch.cat(returns).detach()
+                values = torch.cat(values)
                 
-            advantage = returns - values
+                advantage = returns - values
 
-            actor_loss = -(log_probs * advantage.detach()).mean()
-            critic_loss = advantage.pow(2).mean()
+                actor_loss = -(log_probs * advantage.detach()).mean()
+                critic_loss = advantage.pow(2).mean()
 
-            optimizerA.zero_grad()
-            optimizerC.zero_grad()
+                optimizerA.zero_grad()
+                optimizerC.zero_grad()
 
-            actor_loss.backward()
-            critic_loss.backward()
+                actor_loss.backward()
+                critic_loss.backward()
 
-            optimizerA.step()
-            optimizerC.step()
+                optimizerA.step()
+                optimizerC.step()
     print(wrong, alle)
 
     torch.save(actor.state_dict(), f"./state_dicts/actor_model_{hidden_size}.pt")
