@@ -26,14 +26,7 @@ class AnchorLSTM(nn.Module):
         self.linear = nn.Linear(hidden_size, output_size)
 
     
-    def forward(self, x, h):#(self, x, features, h):
-        '''vocab = list(map(lambda sentence: Counter(sentence.split(" ")), features))# create a dictionary
-        print(vocab)
-        vocab = sorted(vocab, key=vocab.get, reverse=True)
-        word2idx = {word: ind for ind, word in enumerate(vocab)} 
-        encoded_sentences = [word2idx[word] for word in words]
-        embedded_features = self.embeddings(torch.LongTensor(encoded_sentences))
-        x = torch.cat([x, embedded_features],1)'''
+    def forward(self, x, h):
         x = x.reshape((1,x.shape[0], x.shape[1]))
 
         predictions, h = self.lstm(x, h)
