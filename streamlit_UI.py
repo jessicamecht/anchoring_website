@@ -10,7 +10,7 @@ import random
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-heuristic = False
+heuristic = True
 
 def generate_random_code():
     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
@@ -91,7 +91,7 @@ def main():
             if not heuristic:
                 action_idx = get_next_action(lstm_input, ss.shown_instances, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
             else:
-                action_idx = heuristic_select_next_action(1, ss.shown_instances, ss.possible_next_instances_mask)
+                action_idx = heuristic_select_next_action(1, possible_next_instances, ss.possible_next_instances_mask)
         
             ss.action_idx = action_idx
             next_instance = df.loc[ss.action_idx]
@@ -105,7 +105,7 @@ def main():
             if not heuristic:
                 action_idx = get_next_action(lstm_input, ss.shown_instances, hidden_anchor_state, ss.possible_next_instances_mask, actor, anchor_lstm)
             else:
-                action_idx = heuristic_select_next_action(0, ss.shown_instances, ss.possible_next_instances_mask)
+                action_idx = heuristic_select_next_action(0, possible_next_instances, ss.possible_next_instances_mask)
         
             ss.action_idx = action_idx
             next_instance = df.loc[ss.action_idx]

@@ -48,6 +48,8 @@ def predict(pool):
     return predictions, dec_f
 
 def sort_by_confidence(pool, possible_instances_mask):
+    print(possible_instances_mask)
+    possible_instances_mask = possible_instances_mask[0:len(pool)]
     predictions, dec_f = predict(pool)
     possible_instances_mask = np.array(possible_instances_mask).astype(bool)
     
@@ -55,6 +57,7 @@ def sort_by_confidence(pool, possible_instances_mask):
     possible_idxs = np.array(idx)[possible_instances_mask]
     possible_idxs = possible_idxs.reshape((possible_idxs.shape[0],1))
 
+    print(dec_f.shape, possible_instances_mask.shape)
     possible_dec_f = np.array(dec_f)[possible_instances_mask]
     possible_dec_f = possible_dec_f.reshape((possible_dec_f.shape[0],1))
 
