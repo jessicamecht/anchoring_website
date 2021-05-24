@@ -40,7 +40,7 @@ def main():
     data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv',
      'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
       'books_reviews_9.csv', 'books_reviews_10.csv']
-    random_idx = 8#random.randrange(len(data_paths))
+    random_idx = 4#random.randrange(len(data_paths))
     path = data_paths[random_idx]
     df = pd.read_csv(f"./review_sessions/{path}")
 
