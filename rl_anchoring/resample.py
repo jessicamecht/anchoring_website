@@ -162,8 +162,8 @@ def train_resampling(data, anchor_lstm, state_size = 1, hidden_size = 1, steps_d
                 optimizerC.step()
     print(wrong, alle)
 
-    torch.save(actor.state_dict(), f"./state_dicts/actor_model_{hidden_size}.pt")
-    torch.save(critic.state_dict(), f"./state_dicts/critic_model{hidden_size}.pt")
+    torch.save(actor.state_dict(), f"./state_dicts/actor_model_{hidden_size}_new.pt")
+    torch.save(critic.state_dict(), f"./state_dicts/critic_model{hidden_size}_new.pt")
     return review_sessions
     
 
@@ -176,7 +176,7 @@ def main(hidden_size, n_iters=1):
     input_size = 2
     state_size = hidden_size
     anchor_lstm = AnchorLSTM(input_size, hidden_size).to(device)
-    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}.pt', map_location=torch.device('cpu')))
+    anchor_lstm.load_state_dict(torch.load(f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}_new.pt', map_location=torch.device('cpu')))
     all_resampled_review_sessions = []
 
     for train_index, test_index in kf.split(data):

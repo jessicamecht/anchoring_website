@@ -61,5 +61,45 @@ def generate_plot(all_review_sessions, filename):
     plt.xlabel("Numbers of decisions since last accept")
     plt.ylabel("average SVM confidence of accepted file")
     plt.bar(ks, values)
-    plt.savefig(f'./figures/{filename}.png')
+    plt.savefig(f'./figures/{filename}_new.png')
     plt.close()
+
+def plot_agreement(data, filename):
+    agreement_per_class_good = 0
+    agreement_per_class_mid = 0
+    agreement_per_class_bad = 0
+
+    den_good = 0
+    den_bad = 0
+    den_mid = 0
+
+    for review in data:
+        decisions = review["prediction"]
+        turker_decision = review["turker_decision"]
+        good_mask = review["originalRating"] > 3
+        agreement_per_class_good += (decisions[good_mask] == turker_decision[good_mask]).sum()
+        den_good += len(review[good_mask])
+
+        bad_mask = review["originalRating"] < 3
+        agreement_per_class_bad += ((decisions[bad_mask]) == turker_decision[bad_mask]).sum()
+        den_bad += len(review[bad_mask])
+
+        mid_mask = review["originalRating"] == 3
+        agreement_per_class_mid += ((decisions[mid_mask]) == turker_decision[mid_mask]).sum()
+        den_mid += len(review[mid_mask])
+    print(den_good, den_bad, den_mid)
+    print(agreement_per_class_good, agreement_per_class_bad, agreement_per_class_mid)
+
+    ga, ma, ba = agreement_per_class_good/den_good, agreement_per_class_mid/den_mid, agreement_per_class_bad/den_bad
+    x_labels = ["Clear Reject", "Borderline", "Clear Admit"]
+    y = [ba, ma, ga]
+
+    print(y)
+    x = [0,1,2]
+    plt.xticks(x,x_labels)
+    plt.xlabel("Original Rating")
+    plt.ylabel("Agreement with SVM")
+    plt.plot(x,y, linestyle='--', marker='o', color='b')
+    plt.savefig(f'./{filename}_new.png')
+    plt.close()
+

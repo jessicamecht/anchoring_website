@@ -34,16 +34,15 @@ def save_data(last_decisions, shown_instances, path, code):
     data = np.append(shown_instances, last_decisions, axis=1)
     df = pd.DataFrame(data)
     df.to_csv(f'./data/data_ai/mturk_review_session_data_{path}_{code}.csv')
-    #np.save(f'./data/mturk_review_session_data_{path}_{code}.npy', data, allow_pickle=True)
   
 def main():         
     count = len([name for name in os.listdir('./data/data_ai/')])
   
     action_idx = None
-    data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv',
-     'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
+    data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
       'books_reviews_9.csv', 'books_reviews_10.csv']
-    random_idx = 4 if count <=10 else 3#random.randrange(len(data_paths))
+    random_idx = 7
+    #random.randrange(len(data_paths))
 
     print('random', random_idx, count)
     path = data_paths[random_idx]

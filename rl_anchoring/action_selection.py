@@ -38,7 +38,6 @@ def get_next_action(lstm_input, pool, hidden_anchor_state, possible_next_instanc
 
 def predict(pool):
     pool = np.array(pool)
-    print(pool)
     pkl_filename = './rl_anchoring/state_dicts/svm_all_unbalanced.pkl'
     with open(pkl_filename, 'rb') as file:
         clf = pickle.load(file)

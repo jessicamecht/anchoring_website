@@ -35,7 +35,7 @@ def main(hidden_size=3):
     class_map = np.hstack(np.array(list(map(lambda review: review[:,-1], data))))
     classes_pos = np.array(class_map).sum()/len(class_map)
     classes_neg = 1-classes_pos
-    class_weights = torch.tensor([classes_pos, classes_neg], dtype=torch.float32).to(device)
+    class_weights = torch.tensor([1, 1], dtype=torch.float32).to(device)#torch.tensor([classes_pos, classes_neg], dtype=torch.float32).to(device)
 
     review_sessions_lstm = []
     all_predictions = []
@@ -70,9 +70,9 @@ def main(hidden_size=3):
 
         step+=1
 
-    generate_plot(review_sessions_lstm, f"./final_confidence_items_all_unbalanced_{hidden_size}")
+    generate_plot(review_sessions_lstm, f"final_confidence_items_all_unbalanced_{hidden_size}")
 
-    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}.pt')
+    torch.save(anchor_lstm.state_dict(), f'./state_dicts/anchor_lstm_items_all_unbalanced_{hidden_size}_new.pt')
     print("Validation Accuracy: ", np.array(accuracy_val).mean())
 
 def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
@@ -98,7 +98,7 @@ def pre_train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
                 lstm_input, reviewer_decision = get_input_output_data(review_session, "SVM+Decision")
                 preds, hidden, all_hidden = anchor_lstm(lstm_input,hidden_anchor_states)
 
-                print(hidden[0].shape)
+                
 
                 preds = preds.squeeze(0).to(device)
                 loss_ll = loss_fn(preds, reviewer_decision)
@@ -137,12 +137,14 @@ def train_anchor(data, anchor_lstm, anchor_optimizer, loss_fn, hidden_size):
 
 
                 preds = preds.squeeze(0).to(device)
+                
                 loss_ll = loss_fn(preds, reviewer_decision)
                 loss_ll.backward()
                 anchor_optimizer.step()
 
                 ### Accuracy ##########################################
                 decisions = torch.argmax(preds, dim=1) == reviewer_decision
+                print(preds)
                 correct = decisions.sum().item()
                 num_decisions+= len(decisions)
                 num_correct += correct
@@ -195,7 +197,7 @@ def eval_anchor(data, anchor_lstm, step, hidden_size):
 
 
 if __name__ == "__main__":
-    for i in [1,2,3,5,8,10,15,20,50]:
+    for i in [1]:#,2,3,5,8,10,15,20,50]:
         main(i)
     
 
