@@ -3,8 +3,36 @@ import pandas as pd
 import sklearn
 import os
 from rl_anchoring.action_selection import predict
-from rl_anchoring.plot import * 
 from rl_anchoring.utils import *
+
+def get_agreement(data, filename, key="turker_decision"):
+    agreement_per_class_good = 0
+    agreement_per_class_mid = 0
+    agreement_per_class_bad = 0
+
+    den_good = 0
+    den_bad = 0
+    den_mid = 0
+
+    for review in data:
+        decisions = review["originalRating"] > 3
+        turker_decision = review[key]
+        good_mask = review["originalRating"] > 3
+        agreement_per_class_good += (decisions[good_mask] == turker_decision[good_mask]).sum()
+        den_good += len(review[good_mask])
+
+        bad_mask = review["originalRating"] < 3
+        agreement_per_class_bad += ((decisions[bad_mask]) == turker_decision[bad_mask]).sum()
+        den_bad += len(review[bad_mask])
+
+        mid_mask = review["originalRating"] == 3
+        agreement_per_class_mid += ((decisions[mid_mask]) == turker_decision[mid_mask]).sum()
+        den_mid += len(review[mid_mask])
+    print(den_good, den_bad, den_mid)
+    print(agreement_per_class_good, agreement_per_class_bad, agreement_per_class_mid)
+
+    ga, ma, ba = agreement_per_class_good/den_good, agreement_per_class_mid/den_mid, agreement_per_class_bad/den_bad
+    return (ba, ma, ga)
 
 def agreement(data):
     all_agreement = 0
@@ -40,7 +68,7 @@ if __name__ == "__main__":
 
     ai_path ="./data/data_ai/"
     data_ai = load_data(ai_path)
-    ba, ma, ga = plot_agreement(data_ai, "agreement_rl")
+    ba, ma, ga = get_agreement(data_ai, "agreement_rl")
 
     data = np.load('./review_data_mturk/mturk_review_data_w_16_unbalancedall_unbalanced.npy',allow_pickle='TRUE')
     reviews = []
@@ -48,8 +76,8 @@ if __name__ == "__main__":
         df = pd.DataFrame(review)
         df.columns =['prediction', 'svm_confidence', 'features', 'target_decision', 'originalRating', 'Item_Number', 'turker_decision']
         reviews.append(df)
-    ba_1, ma_1, ga_1 = plot_agreement(reviews, "agreement_original")
-    ba_3, ma_3, ga_3 = plot_agreement(reviews, "agreement_original", 'prediction')
+    ba_1, ma_1, ga_1 = get_agreement(reviews, "agreement_original")
+    ba_3, ma_3, ga_3 = get_agreement(reviews, "agreement_original", 'prediction')
 
     x_labels = ["Clear Reject", "Borderline", "Clear Admit"]
     y = [ba, ma, ga]
