@@ -2,13 +2,31 @@ import torch
 import numpy as np
 from torch.distributions import Categorical
 import pickle
+from rl_anchoring.resample_dqn import select_action
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def select_action(output):
     return torch.argmax(output)
-    #return torch.tensor(output.max(2)[1].view(1), dtype=torch.int64, device=device)
+
+def get_next_action_dqn(lstm_input, pool, hidden_anchor_state, possible_next_instances_mask, policy_net, anchor_lstm):
+    policy_net.eval()
+    anchor_lstm.eval()
+
+    predictions, dec_f = predict(pool)
+
+    lstm_input= lstm_input.cpu().reshape(len(lstm_input), 1)
+    predictions= predictions.reshape(len(predictions), 1)
+    input_to_lstm = np.append(lstm_input, predictions, axis=1)
+    input_to_lstm = torch.tensor(input_to_lstm, device=device)
+
+    with torch.no_grad():
+        predictions, state, _ = anchor_lstm(input_to_lstm, hidden_anchor_state)
+
+    action_idx = select_action(state[0].squeeze(-1), policy_net, possible_next_instances_mask)    
+                    
+    return action_idx
 
 
 def get_next_action(lstm_input, pool, hidden_anchor_state, possible_next_instances_mask, actor, anchor_lstm):

@@ -19,9 +19,7 @@ class AnchorLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        #self.embeddings = nn.Embedding(vocab_size, embedding_dim)
-
-        self.lstm = nn.LSTM(input_size= input_size, hidden_size=hidden_size, batch_first=True)
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
 
         self.linear = nn.Linear(hidden_size, output_size)
 
@@ -31,5 +29,5 @@ class AnchorLSTM(nn.Module):
 
         predictions, h = self.lstm(x, h)
         all_hidden = predictions
-        predictions = torch.sigmoid(self.linear(predictions))
+        predictions = torch.softmax(self.linear(predictions), dim=-1)
         return predictions, h, all_hidden

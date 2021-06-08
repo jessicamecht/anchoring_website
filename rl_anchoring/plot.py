@@ -12,6 +12,8 @@ def generate_plot(all_review_sessions, filename):
         nSinceAccept = None
         for i in range(len(review_session)):
             review_session = np.array(review_session)
+            if len(review_session[i]) == 6:
+                    timestamp, reviewer_score, final_decision, features, svm_predictions, svm_confidence  = review_session[i]
             if len(review_session[i]) == 7:
                 svm_predictions, svm_confidence, features, target_decision, final_decision, Item_Number, reviewer_score  = review_session[i]
             if len(review_session[i]) == 8:# if we are trying to evaluate the simulation 
@@ -61,7 +63,7 @@ def generate_plot(all_review_sessions, filename):
     plt.xlabel("Numbers of decisions since last accept")
     plt.ylabel("average SVM confidence of accepted file")
     plt.bar(ks, values)
-    plt.savefig(f'./figures/{filename}_new.png')
+    plt.savefig(f'./{filename}_new.png')
     plt.close()
 
 def plot_agreement(data, filename):
