@@ -1,6 +1,7 @@
 import matplotlib as plt
 from eval_utils import * 
 from rl_anchoring.utils import * 
+from eval_utils import *
 from scipy.stats import pearsonr
 import pandas as pd
 
@@ -135,8 +136,7 @@ def correlation_items(key):
 
     return corr_1
 
-def correlation_resampled(key="turker_decision"):
-    ai_path ="./data/data_ai/"
+def correlation_resampled(key="turker_decision", ai_path ="./data/data_ai/"):
     data = load_data(ai_path)
 
     all_prev = []
@@ -168,8 +168,7 @@ def correlation_to_prev_resampled(key, i):
 
     return corr_1
 
-def agreement_to_orig_resampled(key="turker_decision"):
-    ai_path ="./data/data_ai/"
+def agreement_to_orig_resampled(key="turker_decision", ai_path="./data/data_ai/" ):
     data = load_data(ai_path)
 
     all_orig = []
@@ -181,13 +180,6 @@ def agreement_to_orig_resampled(key="turker_decision"):
         all_dec.extend(dec)
         all_orig.extend(original_rating)
     return np.array((np.array(all_dec) == np.array(all_orig))).sum()/len(all_dec)
-
-
-def setup_plot():
-    plt.legend()
-    plt.xticks(x,x_labels)
-    plt.xlabel("Original Rating")
-    plt.ylabel("Agreement with SVM")
 
 def agreement_to_original_items(key = "turker_review"):
     data = np.load('./review_data_mturk/mturk_review_data_w_16_unbalancedall_unbalanced.npy',allow_pickle='TRUE')
@@ -284,17 +276,18 @@ def plot_items_corr():
     plt.savefig('corrs_items.png')
 
 def plot_graph(bias, agreement):
-    plt.rcParams.update({'font.size': 22})
+    #plt.rcParams.update({'font.size': 15})
     print(bias, 'bias')
     print(agreement, 'agreement')
-    annotations = ['SVM', 'Human', "Human Debiased", 'Human Resampled']
+    annotations = ['SVM', 'Human', "Probabilistic", 'Human LSTM+AC', 'Human LSTM+DQN']
 
-    colors = ["royalblue", 'grey', "tab:blue", "black"]
+    colors = ["lightgrey", 'grey', "tab:blue", "black", "lightskyblue"]
 
     for i, txt in enumerate(annotations):
         plt.plot(bias[i], agreement[i], color=colors[i], marker="D")
-        plt.annotate(txt, (bias[i]+0.002, agreement[i]+0.002), size = 15)
+        plt.annotate(txt, (bias[i]+0.002, agreement[i]+0.002), size = 12)
     plt.xlabel("Bias")
+    plt.grid(b=True, linewidth=0.25)
     plt.ylim([0.75, 0.87])
     plt.xlim([-0.23, -0.07])
     plt.ylabel("Agreement")
@@ -307,16 +300,21 @@ if __name__ == "__main__":
     svm_corr =  correlation_items('svm_decision')
     rev_corr = correlation_items('turker_review')
     res_corr = correlation_resampled()
+    res_corr_dqn = correlation_resampled(ai_path="./data/data_dqn/")
 
     orig_agreement_turker = agreement_to_original_items('turker_review')
+
     orig_agreement_svm = agreement_to_original_items('svm_decision')
     agreement_resampled = agreement_to_orig_resampled()
 
-    agreement = [orig_agreement_svm, orig_agreement_turker, 0.8322, agreement_resampled]
-    bias = [svm_corr, rev_corr, -0.2237, res_corr]'''
-    bias = [-0.09216545720463447, -0.22257749848973915, -0.2237, -0.15478632233407333] 
-    agreement = [0.8044817927170869, 0.764985994397759, 0.8322, 0.8636161705908485]
-    #plot_graph(bias, agreement)
+    agreement_resampled_dqn = agreement_to_orig_resampled(ai_path="./data/data_dqn/")
+    '''
+    agreement = [0.8044817927170869, 0.764985994397759, 0.8322, 0.8621863037005529, 0.85]#[orig_agreement_svm, orig_agreement_turker, 0.8322, agreement_resampled, agreement_resampled_dqn]
+    bias = [-0.09216545720463447, -0.22257749848973915, -0.2237, -0.16320275663315698, -0.19283043533522523]#[svm_corr, rev_corr, -0.2237, res_corr, res_corr_dqn]
+
+    '''bias = [-0.09216545720463447, -0.22257749848973915, -0.2237, -0.16320275663315698, -0.1881513956188553]
+    agreement = [0.8044817927170869, 0.764985994397759, 0.8322, 0.8621863037005529, 0.8545454545454545]'''
+    plot_graph(bias, agreement)
 
     '''print(rev_corr_adm, 'rev_corr_adm')
     print(svm_corr_adm, 'svm_corr_adm')
@@ -326,7 +324,7 @@ if __name__ == "__main__":
     print(orig_agreement_turker, 'orig_agreement_turker')
     print(orig_agreement_svm, 'orig_agreement_svm')
     print(agreement_resampled, "agreement_resampled")'''
-    plot_items_corr()
+    #plot_items_corr()
     
 
     

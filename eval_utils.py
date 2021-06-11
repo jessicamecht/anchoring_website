@@ -20,7 +20,8 @@ def load_data(path):
                 elif len(df.columns) == 4:
                     df.columns = ["idx", "summary", "reviewText", "turker_decision"]
                     data_paths = ['books_reviews.csv', 'books_reviews_2.csv', 'books_reviews_3.csv', 'books_reviews_4.csv', 'books_reviews_5.csv', 'books_reviews_6.csv', 'books_reviews_7.csv', 'books_reviews_8.csv',
-                    'books_reviews_9.csv', 'books_reviews_10.csv']
+                    'books_reviews_9.csv', 'books_reviews_10.csv', 'books_reviews_11.csv', 'books_reviews_12.csv',
+                    'books_reviews_13.csv', 'books_reviews_14.csv', 'books_reviews_15.csv']
                     for path_orig in data_paths:
                         if path_orig in filename:
                             rating = pd.read_csv(f"./review_sessions/{path_orig}")['overall']
